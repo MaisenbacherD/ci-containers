@@ -64,6 +64,11 @@ def main():
     parser.add_argument("--base-images", default="base_images",
                         help="Config key holding the distro->base image map "
                              "(e.g. containerdisk_base_images)")
+    parser.add_argument("--print-packages", action="store_true",
+                        help="Print the resolved package list (comma "
+                             "separated) and exit")
+    parser.add_argument("--print-base-image", action="store_true",
+                        help="Print the resolved base image and exit")
     parser.add_argument("--output", default=None)
 
     args = parser.parse_args()
@@ -75,6 +80,13 @@ def main():
     packages = build_package_list(config, args.distro, bundle_list)
 
     base_image = config[args.base_images][args.distro]
+
+    if args.print_packages:
+        print(",".join(packages))
+        return
+    if args.print_base_image:
+        print(base_image)
+        return
 
     env = Environment(
         loader=FileSystemLoader(TEMPLATE_DIR),
