@@ -17,10 +17,6 @@ STAGING_BUILD_TARGETS := $(addprefix build-staging-,$(DISTROS))
 NVMETCLI_BUILD_TARGETS := $(addprefix build-nvmetcli-,$(NVMETCLI_DISTROS))
 NVMETCLI_CONTAINERDISK_BUILD_TARGETS := $(addprefix build-nvmetcli-containerdisk-,$(NVMETCLI_DISTROS))
 
-# Buildx builder with the security.insecure entitlement, required because the
-# containerDisk builds run virt-customize (a libguestfs appliance VM).
-INSECURE_BUILDER := ci-insecure
-
 .PHONY: all help generate build staging-build build-nvmetcli \
         build-nvmetcli-containerdisk staging-dockerfiles \
         $(BUILD_TARGETS) $(STAGING_BUILD_TARGETS) $(NVMETCLI_BUILD_TARGETS) \
@@ -90,12 +86,10 @@ $(STAGING_BUILD_TARGETS): build-staging-%: | staging/Dockerfile.%
 $(NVMETCLI_BUILD_TARGETS): build-nvmetcli-%: | nvmetcli/Dockerfile.%
 	sudo docker build -f nvmetcli/Dockerfile.$* -t ci:nvmetcli-$* .
 
-# containerDisks need virt-customize, which requires the security.insecure
-# entitlement, so build them with buildx on a dedicated builder.
+# containerDisks inject the nvmetcli tools into the base cloud image on the
+# host (scripts/build-containerdisk.sh), then package the resulting qcow2 as a
+# scratch containerDisk.
 $(NVMETCLI_CONTAINERDISK_BUILD_TARGETS): build-nvmetcli-containerdisk-%: | nvmetcli/Dockerfile.%.containerdisk
-	sudo docker buildx inspect $(INSECURE_BUILDER) >/dev/null 2>&1 || \
-		sudo docker buildx create --name $(INSECURE_BUILDER) \
-			--buildkitd-flags '--allow-insecure-entitlement security.insecure' >/dev/null
-	sudo docker buildx build --builder $(INSECURE_BUILDER) \
-		--allow security.insecure --load \
-		-f nvmetcli/Dockerfile.$*.containerdisk -t ci:nvmetcli-$*-containerdisk .
+	DOCKER="sudo docker" scripts/build-containerdisk.sh $*
+	sudo docker build -f nvmetcli/Dockerfile.$*.containerdisk \
+		-t ci:nvmetcli-$*-containerdisk nvmetcli/build

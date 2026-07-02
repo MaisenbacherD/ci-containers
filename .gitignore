@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Copyright (c) 2026 Western Digital Corporation or its affiliates.
+#
+# Author: Dennis Maisenbacher <dennis.maisenbacher@wdc.com>
+
+# Customized containerDisk qcow2 images produced by scripts/build-containerdisk.sh
+nvmetcli/build/
