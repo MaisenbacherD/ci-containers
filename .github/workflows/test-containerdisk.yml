@@ -1,0 +1,56 @@
+---
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Copyright (c) 2026 Western Digital Corporation or its affiliates.
+#
+# Author: Dennis Maisenbacher <dennis.maisenbacher@wdc.com>
+#
+# TEMPORARY / THROWAWAY workflow to validate the runner-side nvmetcli
+# containerDisk build on a fork before opening the PR. Mirrors the real
+# deploy_nvmetcli_containerdisks job but builds all three distros without
+# pushing (no registry permissions required). Discard before the PR.
+
+name: "TEST nvmetcli containerdisk (throwaway)"
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test_containerdisk:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro:
+          - debian
+          - fedora
+          - tumbleweed
+    name: test containerdisk (${{ matrix.distro }})
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+      - name: Install libguestfs tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            guestfs-tools guestmount python3-yaml
+
+      - name: Inject nvmetcli tools into the base cloud image
+        run: scripts/build-containerdisk.sh ${{ matrix.distro }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Build (no push) nvmetcli containerDisk
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: nvmetcli/build
+          file: nvmetcli/Dockerfile.${{ matrix.distro }}.containerdisk
+          platforms: linux/amd64
+          push: false
+          provenance: false
