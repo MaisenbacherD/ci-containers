@@ -32,6 +32,7 @@ RUN apk update && \
     python3-dev \
     py3-pip \
     py3-virtualenv \
+    py3-jsonschema \
     && apk cache clean && \
     rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 
