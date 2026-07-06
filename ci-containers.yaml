@@ -229,7 +229,6 @@ bundles:
       - python3-nose2
 
     tumbleweed:
-      - kernel-default-extra
       - git
       - make
       - python3-configshell-fb
