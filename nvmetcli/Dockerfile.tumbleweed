@@ -15,6 +15,7 @@ RUN zypper --non-interactive refresh && \
         glibc-locale-base \
         timezone && \
     zypper --non-interactive install --no-recommends \
+    kernel-default \
     git \
     make \
     python3-configshell-fb \
