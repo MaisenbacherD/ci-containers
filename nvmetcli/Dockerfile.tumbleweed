@@ -15,6 +15,7 @@ RUN zypper --non-interactive refresh && \
         glibc-locale-base \
         timezone && \
     zypper --non-interactive install --no-recommends \
+    ca-certificates \
     kernel-default \
     git \
     make \

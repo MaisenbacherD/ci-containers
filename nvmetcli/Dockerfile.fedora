@@ -12,6 +12,7 @@ ENV TZ=Europe/Berlin
 RUN dnf update -y && \
     dnf install -y glibc-langpack-en tzdata && \
     dnf install -y \
+    ca-certificates \
     git \
     make \
     python3-configshell \

@@ -214,6 +214,7 @@ bundles:
 
   nvmetcli:
     debian:
+      - ca-certificates
       - git
       - make
       - python3-configshell-fb
@@ -223,6 +224,7 @@ bundles:
       - flake8
 
     fedora:
+      - ca-certificates
       - git
       - make
       - python3-configshell
@@ -233,6 +235,7 @@ bundles:
       - python3-flake8
 
     tumbleweed:
+      - ca-certificates
       - kernel-default
       - git
       - make
