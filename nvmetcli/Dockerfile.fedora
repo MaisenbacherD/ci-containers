@@ -18,6 +18,8 @@ RUN dnf update -y && \
     python3-kmod \
     python3-devel \
     python3-nose2 \
+    python3-pylint \
+    python3-flake8 \
     && dnf clean all && \
     rm -rf /var/cache/dnf/* /tmp/* /var/tmp/*
 
