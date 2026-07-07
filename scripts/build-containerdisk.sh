@@ -71,7 +71,14 @@ apt-get \$apt_opts install ${packages//,/ }"
         install_cmd="dnf -y install ${packages//,/ }"
         ;;
     tumbleweed)
-        install_cmd="zypper -n in -l ${packages//,/ }"
+        # kernel-default-base (pre-installed in the base containerdisk) conflicts
+        # with kernel-default; remove it first (only if kernel-default is being
+        # installed) so the zypper install succeeds.
+        rm_cmd=""
+        if [[ ",${packages}," == *",kernel-default,"* ]]; then
+            rm_cmd="zypper -n rm kernel-default-base; "
+        fi
+        install_cmd="${rm_cmd}zypper -n in -l ${packages//,/ }"
         ;;
     *)
         echo "error: unknown distro '${distro}'" >&2
