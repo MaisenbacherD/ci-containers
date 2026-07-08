@@ -144,6 +144,40 @@ if [ "$distro" = "fedora" ]; then
     sudo touch "$mnt/.autorelabel"
 fi
 
+# openSUSE installs a kernel (kernel-default) here, and its %posttrans runs
+# grub2-mkconfig and dracut *inside* the guestmount chroot, where the guest
+# root filesystem is a libguestfs FUSE mount and the host's /proc,/sys,/dev are
+# bind-mounted in. That corrupts the image in two ways that make it unbootable
+# under KubeVirt:
+#   * grub2-mkconfig probes the root device, sees the guest '/' backed by the
+#     guestmount FUSE mount, and bakes "root=/dev/fuse" into grub.cfg. The guest
+#     then hangs forever early in boot waiting for the dev-fuse.device unit.
+#   * dracut builds a hostonly initramfs tuned to the build runner, which can
+#     omit the virtio_blk/xfs (and virtiofs) drivers the KubeVirt VM needs.
+# Repair both: rebuild a generic initramfs for the installed kernel and rewrite
+# the bogus root= to the real root device taken from the guest's fstab.
+if [ "$distro" = "tumbleweed" ]; then
+    sudo chroot "$mnt" /bin/bash -euo pipefail -s <<'REPAIR'
+kver="$(ls -1 /lib/modules | sort -V | tail -n1)"
+echo "build-containerdisk: regenerating generic initramfs for ${kver}"
+dracut --force --no-hostonly "/boot/initrd-${kver}" "${kver}"
+
+root_spec="$(awk '$1 !~ /^#/ && $2 == "/" { print $1; exit }' /etc/fstab)"
+[ -n "${root_spec}" ] || { echo "error: no '/' entry found in /etc/fstab" >&2; exit 1; }
+while IFS= read -r cfg; do
+    if grep -q 'root=/dev/fuse' "${cfg}"; then
+        echo "build-containerdisk: rewriting root=/dev/fuse -> root=${root_spec} in ${cfg}"
+        sed -i "s#root=/dev/fuse#root=${root_spec}#g" "${cfg}"
+    fi
+done < <(find /boot -name grub.cfg)
+
+if grep -rIq 'root=/dev/fuse' /boot; then
+    echo "error: root=/dev/fuse still present under /boot after repair" >&2
+    exit 1
+fi
+REPAIR
+fi
+
 for d in dev proc sys; do
     umount_retry "$mnt/$d"
 done
